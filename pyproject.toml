@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentmem"
+version = "0.1.0"
+description = "Persistent memory system for AI agents. Episodic logs, semantic patterns, wiki-link graphs, correction detection."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Xavier", email = "agentmem@proton.me" }]
+keywords = ["ai", "agents", "memory", "llm", "embeddings", "knowledge-graph"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+search = ["sentence-transformers>=2.2.0", "numpy>=1.24.0"]
+all = ["sentence-transformers>=2.2.0", "numpy>=1.24.0"]
+dev = ["pytest>=7.0", "sentence-transformers>=2.2.0", "numpy>=1.24.0"]
+
+[project.scripts]
+agentmem = "agentmem.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/xavierthe/agentmem"
+Repository = "https://github.com/xavierthe/agentmem"
+Issues = "https://github.com/xavierthe/agentmem/issues"
