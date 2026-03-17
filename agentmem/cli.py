@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import io
+import os
 import sys
 from pathlib import Path
 
@@ -13,6 +15,20 @@ from agentmem.graph import rebuild_graph_index
 from agentmem.init import init_memory
 
 
+def _fix_encoding():
+    """Fix Windows console encoding for emoji output."""
+    if sys.platform == "win32":
+        try:
+            sys.stdout = io.TextIOWrapper(
+                sys.stdout.buffer, encoding="utf-8", errors="replace"
+            )
+            sys.stderr = io.TextIOWrapper(
+                sys.stderr.buffer, encoding="utf-8", errors="replace"
+            )
+        except Exception:
+            pass
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     """Initialize memory directory."""
     target = Path(args.path).resolve()
@@ -21,7 +37,7 @@ def cmd_init(args: argparse.Namespace) -> int:
         return 1
 
     result = init_memory(target)
-    print(f"✅ Created memory structure at {target}")
+    print(f"[ok] Created memory structure at {target}")
     print(f"   Files created: {len(result['created_files'])}")
     if result["skipped_files"]:
         print(f"   Files skipped (already exist): {len(result['skipped_files'])}")
@@ -54,13 +70,13 @@ def cmd_search(args: argparse.Namespace) -> int:
     if args.rebuild:
         print("Rebuilding search index...")
         stats = build_index(memory_dir, config)
-        print(f"✅ Indexed {stats['files_indexed']} files, {stats['chunks_indexed']} chunks")
+        print(f"[ok] Indexed {stats['files_indexed']} files, {stats['chunks_indexed']} chunks")
         print(f"   Cached: {stats['cached_files']}, New embeddings: {stats['new_embeddings']}")
         if not args.query:
             return 0
 
     if not args.query:
-        print("Error: --query required (or use --rebuild to just rebuild index)")
+        print("Error: query required (or use --rebuild to just rebuild index)")
         return 1
 
     results = search(memory_dir, args.query, config)
@@ -69,7 +85,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         print("No results found.")
         return 0
 
-    print(f"\n🔍 Top {len(results)} results for: \"{args.query}\"\n")
+    print(f"\nTop {len(results)} results for: \"{args.query}\"\n")
     print("-" * 60)
 
     for i, r in enumerate(results, 1):
@@ -89,7 +105,7 @@ def cmd_graph(args: argparse.Namespace) -> int:
 
     print("Building wiki-link graph...")
     output = rebuild_graph_index(memory_dir)
-    print(f"✅ Graph index written to {output.relative_to(memory_dir.parent)}")
+    print(f"[ok] Graph index written to {output.relative_to(memory_dir.parent)}")
     return 0
 
 
@@ -104,13 +120,11 @@ def cmd_status(args: argparse.Namespace) -> int:
     # Count files and size
     file_count = 0
     total_size = 0
-    for root, _dirs, files in memory_dir.rglob("*"):
-        for f in files:
-            if f.endswith(".md"):
-                file_count += 1
-                total_size += (root / f).stat().st_size
+    for filepath in memory_dir.rglob("*.md"):
+        file_count += 1
+        total_size += filepath.stat().st_size
 
-    print(f"📊 Memory Status: {memory_dir.name}/")
+    print(f"Memory Status: {memory_dir.name}/")
     print(f"   Files: {file_count} markdown files")
     print(f"   Size: {total_size / 1024:.1f} KB")
 
@@ -135,24 +149,26 @@ def cmd_detect(args: argparse.Namespace) -> int:
     confidence = calculate_confidence(corrections)
 
     if not corrections:
-        print("❌ No corrections detected")
+        print("No corrections detected")
         return 0
 
-    print(f"✅ Correction detected (confidence: {confidence*100:.0f}%)")
+    print(f"Correction detected (confidence: {confidence*100:.0f}%)")
     print(f"   Patterns matched: {len(corrections)}")
     for c in corrections:
         print(f"   - {c['category']}: {c['match']}")
 
     if confidence < 0.70:
-        print(f"\n⚠️  Confidence below threshold (70%), would not auto-save")
+        print(f"\n   Confidence below threshold (70%), would not auto-save")
     else:
-        print(f"\n✅ Confidence above threshold, would auto-save to PATTERNS.md")
+        print(f"\n   Confidence above threshold, would auto-save to PATTERNS.md")
 
     return 0
 
 
 def main() -> int:
     """Main CLI entry point."""
+    _fix_encoding()
+
     parser = argparse.ArgumentParser(
         prog="agentmem",
         description="Persistent memory system for AI agents",
@@ -183,8 +199,8 @@ def main() -> int:
     status_parser.add_argument("--path", help="Memory directory path")
     status_parser.set_defaults(func=cmd_status)
 
-    # detect (hidden, for testing)
-    detect_parser = subparsers.add_parser("detect", help="Detect corrections (testing)")
+    # detect
+    detect_parser = subparsers.add_parser("detect", help="Detect corrections in a message")
     detect_parser.add_argument("message", help="Message to analyze")
     detect_parser.set_defaults(func=cmd_detect)
 

@@ -318,7 +318,7 @@ memory/
 ## Development
 
 ```bash
-git clone https://github.com/xavierthe/agentmem.git
+git clone https://github.com/x4v13r1120/agentmem.git
 cd agentmem
 pip install -e .[dev]
 pytest
